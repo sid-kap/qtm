@@ -1,4 +1,4 @@
-package com.hunnymustardapps.queuethemusic;
+package com.hunnymustardapps.queuethemusic.activities;
 
 import android.app.Activity;
 import android.content.Intent;
@@ -6,10 +6,13 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.EditText;
 import android.widget.ListView;
 
+import com.hunnymustardapps.queuethemusic.R;
 import com.hunnymustardapps.queuethemusic.adapters.SearchResultListAdapter;
+import com.hunnymustardapps.queuethemusic.pojos.Track;
 import com.spotify.sdk.android.player.Spotify;
 import com.spotify.sdk.android.authentication.AuthenticationClient;
 import com.spotify.sdk.android.authentication.AuthenticationRequest;
@@ -44,6 +47,7 @@ public class MainActivity extends Activity implements
 
     private Player mPlayer;
     private List<String> _searchResults;
+    private List<Track> _tracks;
     private SearchResultListAdapter _srla;
 
     @Override
@@ -51,27 +55,34 @@ public class MainActivity extends Activity implements
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-//        AuthenticationRequest.Builder builder =
-//                new AuthenticationRequest.Builder(CLIENT_ID, AuthenticationResponse.Type.TOKEN, REDIRECT_URI);
-//        builder.setScopes(new String[]{"user-read-private", "streaming"});
-//        AuthenticationRequest request = builder.build();
-//
-//        AuthenticationClient.openLoginActivity(this, REQUEST_CODE, request);
+        // Authentication with Spotify
+        AuthenticationRequest.Builder builder =
+                new AuthenticationRequest.Builder(CLIENT_ID, AuthenticationResponse.Type.TOKEN, REDIRECT_URI);
+        builder.setScopes(new String[]{"user-read-private", "streaming"});
+        AuthenticationRequest request = builder.build();
+        AuthenticationClient.openLoginActivity(this, REQUEST_CODE, request);
 
         _searchResults = new ArrayList<String>();
+        _tracks = new ArrayList<Track>();
         _searchResults.add("fuck me");
         // setup listview
         ListView results = (ListView) findViewById(R.id.search_results);
         _srla = new SearchResultListAdapter(this, _searchResults);
 
+        results.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                String code = "spotify:track:" + _tracks.get(position).getId();
+                mPlayer.play(code);
+            }
+        });
+
         results.setAdapter(_srla);
     }
 
     public void search(View view) {
-
         String keywords = ((EditText) findViewById(R.id.spotify_search)).getText().toString();
         new HttpSearch().execute(keywords.trim());
-
     }
 
     private class HttpSearch extends AsyncTask<String, Void, Void> {
@@ -106,9 +117,13 @@ public class MainActivity extends Activity implements
                 JSONObject jo = new JSONObject(json);
                 jo = jo.getJSONObject("tracks");
                 JSONArray ja = jo.getJSONArray("items");
+                _tracks.clear();
                 for (int i = 0; i < ja.length(); i++) {
-                    results.add((ja.getJSONObject(i).getString("name")));
-                    System.out.println((ja.getJSONObject(i).getString("name")));
+                    results.add(ja.getJSONObject(i).getString("name"));
+                    Track track = new Track();
+                    track.setTitle(ja.getJSONObject(i).getString("name"));
+                    track.setId(ja.getJSONObject(i).getString("id"));
+                    _tracks.add(track);
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -152,8 +167,8 @@ public class MainActivity extends Activity implements
                 mPlayer = Spotify.getPlayer(playerConfig, this, new Player.InitializationObserver() {
                     @Override
                     public void onInitialized(Player player) {
-//                        mPlayer.addConnectionStateCallback(MainActivity.this);
-//                        mPlayer.addPlayerNotificationCallback(MainActivity.this);
+                        mPlayer.addConnectionStateCallback(MainActivity.this);
+                        mPlayer.addPlayerNotificationCallback(MainActivity.this);
 //                        mPlayer.play("spotify:track:5mQjdE8ujLsXjBrlOkUYBg");
                     }
 
