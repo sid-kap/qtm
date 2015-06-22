@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">QueueTheMusic</string>
+    <string name="app_name_short">QTM</string>
+
+    <string name="search_hint">Search for a song</string>
+
+</resources>

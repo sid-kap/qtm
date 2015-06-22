@@ -1,0 +1,10 @@
+# Directories
+target/
+.classpath
+.project
+.settings/
+
+ssbl-auth/
+
+# OS Files
+.DS_Store
